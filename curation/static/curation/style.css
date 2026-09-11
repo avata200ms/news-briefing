@@ -1053,3 +1053,213 @@ textarea {
         display: none;
     }
 }
+
+/* ==========================================================================
+   히스토리 페이지 및 저장 버튼 스타일
+   ========================================================================== */
+.btn-history-nav {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    background: rgba(99, 102, 241, 0.15);
+    border: 1px solid rgba(99, 102, 241, 0.4);
+    color: #e0e7ff;
+    padding: 7px 14px;
+    border-radius: var(--radius-full);
+    font-size: 13px;
+    font-weight: 600;
+    text-decoration: none;
+    transition: var(--transition-fast);
+}
+
+.btn-history-nav:hover {
+    background: rgba(99, 102, 241, 0.3);
+    border-color: #818cf8;
+    color: #ffffff;
+    transform: translateY(-1px);
+    box-shadow: 0 4px 14px rgba(99, 102, 241, 0.35);
+}
+
+.results-actions {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    flex-wrap: wrap;
+}
+
+.btn-save-all {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    background: linear-gradient(135deg, rgba(16, 185, 129, 0.2) 0%, rgba(5, 150, 105, 0.3) 100%);
+    border: 1px solid rgba(16, 185, 129, 0.5);
+    color: #a7f3d0;
+    font-size: 13px;
+    font-weight: 600;
+    padding: 8px 16px;
+    border-radius: var(--radius-md);
+    cursor: pointer;
+    transition: var(--transition-fast);
+}
+
+.btn-save-all:hover {
+    background: linear-gradient(135deg, rgba(16, 185, 129, 0.35) 0%, rgba(5, 150, 105, 0.45) 100%);
+    border-color: #34d399;
+    color: #ffffff;
+    transform: translateY(-1px);
+    box-shadow: 0 4px 14px rgba(16, 185, 129, 0.3);
+}
+
+.btn-save-all:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+    transform: none;
+}
+
+/* 개별 카드 하단 바 레이아웃 조정 */
+.card-bottom-bar {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    border-top: 1px solid var(--border-glass);
+    padding-top: 14px;
+    gap: 12px;
+}
+
+.btn-save-article {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid var(--border-glass);
+    color: var(--text-secondary);
+    font-size: 13px;
+    font-weight: 600;
+    padding: 7px 14px;
+    border-radius: var(--radius-md);
+    cursor: pointer;
+    transition: var(--transition-fast);
+}
+
+.btn-save-article:hover {
+    background: rgba(99, 102, 241, 0.18);
+    border-color: rgba(99, 102, 241, 0.45);
+    color: #e0e7ff;
+    transform: translateY(-1px);
+}
+
+.btn-save-article.saved {
+    background: rgba(16, 185, 129, 0.15);
+    border-color: rgba(16, 185, 129, 0.5);
+    color: #6ee7b7;
+    cursor: default;
+    transform: none;
+}
+
+/* 히스토리 전용 스타일 */
+.history-top-bar {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 24px;
+}
+
+.history-count-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    background: rgba(255, 255, 255, 0.04);
+    border: 1px solid var(--border-glass);
+    padding: 6px 14px;
+    border-radius: var(--radius-full);
+    font-size: 13px;
+    color: var(--text-secondary);
+}
+
+.history-count-badge strong {
+    color: #a5b4fc;
+}
+
+.history-cards-grid {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 22px;
+    margin-bottom: 40px;
+}
+
+.history-card::before {
+    background: linear-gradient(135deg, #6366f1 0%, #3b82f6 100%);
+}
+
+.history-meta-group {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    flex-wrap: wrap;
+}
+
+.save-time-badge {
+    font-size: 12px;
+    color: var(--text-muted);
+}
+
+.keyword-chip {
+    font-size: 12px;
+    background: rgba(99, 102, 241, 0.12);
+    color: #c7d2fe;
+    padding: 2px 10px;
+    border-radius: var(--radius-full);
+    border: 1px solid rgba(99, 102, 241, 0.25);
+}
+
+.btn-delete-item {
+    background: transparent;
+    border: 1px solid rgba(239, 68, 68, 0.3);
+    color: #fca5a5;
+    font-size: 12px;
+    font-weight: 500;
+    padding: 4px 10px;
+    border-radius: var(--radius-md);
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    transition: var(--transition-fast);
+}
+
+.btn-delete-item:hover {
+    background: rgba(239, 68, 68, 0.15);
+    border-color: #ef4444;
+    color: #ffffff;
+}
+
+/* Empty State */
+.empty-state-panel {
+    text-align: center;
+    padding: 64px 24px;
+    margin: 20px 0;
+}
+
+.empty-icon {
+    color: var(--text-muted);
+    margin-bottom: 18px;
+}
+
+.empty-title {
+    font-size: 20px;
+    font-weight: 700;
+    color: var(--text-primary);
+    margin-bottom: 8px;
+}
+
+.empty-desc {
+    font-size: 14px;
+    color: var(--text-secondary);
+    line-height: 1.6;
+    margin-bottom: 28px;
+}
+
+.empty-btn {
+    text-decoration: none;
+    display: inline-flex;
+}

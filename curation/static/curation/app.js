@@ -24,6 +24,10 @@ document.addEventListener('DOMContentLoaded', () => {
     const rawArticlesContainer = document.getElementById('raw-articles-container');
     const btnToggleRaw = document.getElementById('btn-toggle-raw');
     const btnScrollToSearch = document.getElementById('btn-scroll-to-search');
+    const btnSaveAllResults = document.getElementById('btn-save-all-results');
+
+    // 현재 큐레이션 결과 캐싱 (저장 시 활용)
+    let lastCurationResult = null;
 
     // 모달 엘리먼트
     const apiModalBackdrop = document.getElementById('api-modal-backdrop');
@@ -166,8 +170,15 @@ document.addEventListener('DOMContentLoaded', () => {
     // 3. 결과 렌더링
     // =========================================================================
     function renderResults(result) {
+        lastCurationResult = result;
         resKeyword.textContent = result.keyword;
         resMetaInfo.textContent = `네이버 검색 20건 중 선정 완료 • 필터: "${result.filter_prompt}"`;
+
+        // 전체 저장 버튼 상태 초기화
+        if (btnSaveAllResults) {
+            btnSaveAllResults.disabled = false;
+            btnSaveAllResults.querySelector('span').textContent = '3건 전체 저장하기';
+        }
 
         // 데모 모드 배너
         if (result.metadata && result.metadata.is_demo) {
@@ -228,6 +239,14 @@ document.addEventListener('DOMContentLoaded', () => {
                 </div>
 
                 <div class="card-bottom-bar">
+                    <button type="button" class="btn-save-article" data-index="${index}">
+                        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"></path>
+                            <polyline points="17 21 17 13 7 13 7 21"></polyline>
+                            <polyline points="7 3 7 8 15 8"></polyline>
+                        </svg>
+                        <span>결과 저장하기</span>
+                    </button>
                     <a href="${art.link}" target="_blank" rel="noopener noreferrer" class="btn-read-origin">
                         기사 원문 보러가기
                         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -238,6 +257,51 @@ document.addEventListener('DOMContentLoaded', () => {
                 </div>
             `;
             curatedCardsContainer.appendChild(card);
+        });
+
+        // 카드별 저장 버튼 이벤트 리스너 바인딩
+        document.querySelectorAll('.btn-save-article').forEach(btn => {
+            btn.addEventListener('click', async (e) => {
+                const idx = parseInt(btn.dataset.index, 10);
+                const art = result.curated_articles[idx];
+                if (!art) return;
+
+                btn.disabled = true;
+                btn.querySelector('span').textContent = '저장 중...';
+
+                try {
+                    const saveRes = await fetch('/api/save/', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'X-CSRFToken': getCsrfToken(),
+                        },
+                        body: JSON.stringify({
+                            title: art.title,
+                            summary_bullets: art.summary_bullets,
+                            link: art.link,
+                            reason: art.reason,
+                            key_insight: art.key_insight,
+                            keyword: result.keyword,
+                        }),
+                    });
+                    const saveData = await saveRes.json();
+
+                    if (saveData.status === 'success') {
+                        btn.classList.add('saved');
+                        btn.querySelector('span').textContent = '저장 완료 ✓';
+                    } else {
+                        alert(saveData.message || '저장에 실패했습니다.');
+                        btn.disabled = false;
+                        btn.querySelector('span').textContent = '결과 저장하기';
+                    }
+                } catch (err) {
+                    console.error('Save failed:', err);
+                    alert('네트워크 오류로 저장을 완료하지 못했습니다.');
+                    btn.disabled = false;
+                    btn.querySelector('span').textContent = '결과 저장하기';
+                }
+            });
         });
 
         // 20개 전체 원본 기사 렌더링
@@ -274,8 +338,56 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     // =========================================================================
-    // 4. 아코디언 & 검색 복귀 버튼
+    // 4. 전체 저장, 아코디언 & 검색 복귀 버튼
     // =========================================================================
+    if (btnSaveAllResults) {
+        btnSaveAllResults.addEventListener('click', async () => {
+            if (!lastCurationResult || !lastCurationResult.curated_articles) {
+                alert('저장할 큐레이션 결과가 없습니다.');
+                return;
+            }
+
+            btnSaveAllResults.disabled = true;
+            btnSaveAllResults.querySelector('span').textContent = '저장 중...';
+
+            try {
+                const response = await fetch('/api/save/', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRFToken': getCsrfToken(),
+                    },
+                    body: JSON.stringify({
+                        items: lastCurationResult.curated_articles,
+                        keyword: lastCurationResult.keyword,
+                    }),
+                });
+                const data = await response.json();
+
+                if (data.status === 'success') {
+                    btnSaveAllResults.querySelector('span').textContent = '전체 3건 저장 완료 ✓';
+                    document.querySelectorAll('.btn-save-article').forEach(btn => {
+                        btn.classList.add('saved');
+                        btn.querySelector('span').textContent = '저장 완료 ✓';
+                        btn.disabled = true;
+                    });
+                    if (confirm('3건의 기사가 히스토리에 저장되었습니다!\n지금 "나의 요약 히스토리"로 이동하시겠습니까?')) {
+                        window.location.href = '/history/';
+                    }
+                } else {
+                    alert(data.message || '저장에 실패했습니다.');
+                    btnSaveAllResults.disabled = false;
+                    btnSaveAllResults.querySelector('span').textContent = '3건 전체 저장하기';
+                }
+            } catch (err) {
+                console.error('Save all failed:', err);
+                alert('통신 오류로 저장을 완료하지 못했습니다.');
+                btnSaveAllResults.disabled = false;
+                btnSaveAllResults.querySelector('span').textContent = '3건 전체 저장하기';
+            }
+        });
+    }
+
     btnToggleRaw.addEventListener('click', () => {
         const isExpanded = btnToggleRaw.classList.contains('expanded');
         if (isExpanded) {

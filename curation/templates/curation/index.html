@@ -55,6 +55,12 @@
                     </svg>
                     API Key 설정 안내
                 </button>
+                <a href="{% url 'curation:history' %}" class="btn-history-nav" id="btn-nav-history">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"></path>
+                    </svg>
+                    <span>나의 요약 히스토리</span>
+                </a>
             </div>
         </header>
 
@@ -176,9 +182,19 @@
                         </h2>
                         <p class="results-meta" id="res-meta-info"></p>
                     </div>
-                    <button class="btn-secondary" id="btn-scroll-to-search">
-                        새로운 키워드로 검색
-                    </button>
+                    <div class="results-actions">
+                        <button class="btn-save-all" id="btn-save-all-results">
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"></path>
+                                <polyline points="17 21 17 13 7 13 7 21"></polyline>
+                                <polyline points="7 3 7 8 15 8"></polyline>
+                            </svg>
+                            <span>3건 전체 저장하기</span>
+                        </button>
+                        <button class="btn-secondary" id="btn-scroll-to-search">
+                            새로운 키워드로 검색
+                        </button>
+                    </div>
                 </div>
 
                 <!-- 데모 모드 알림 배너 (필요 시) -->

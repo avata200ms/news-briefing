@@ -1,0 +1,233 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>나의 요약 히스토리 - AI 뉴스 큐레이터</title>
+    <meta name="description" content="사용자가 저장한 AI 뉴스 큐레이션 및 요약 히스토리 목록">
+
+    <!-- Google Fonts: Inter & Noto Sans KR -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Noto+Sans+KR:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+
+    {% load static %}
+    <link rel="stylesheet" href="{% static 'curation/style.css' %}">
+</head>
+<body>
+    <!-- 배경 글로우 오브젝트 -->
+    <div class="glow-sphere glow-1"></div>
+    <div class="glow-sphere glow-2"></div>
+
+    <div class="app-wrapper">
+        <!-- 헤더 -->
+        <header class="app-header">
+            <div class="brand-area">
+                <a href="{% url 'curation:index' %}" class="brand-link">
+                    <div class="brand-icon">
+                        <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon>
+                        </svg>
+                    </div>
+                </a>
+                <div>
+                    <h1 class="brand-title">나의 요약 히스토리</h1>
+                    <p class="brand-subtitle">데이터베이스에 보관된 뉴스 큐레이션 &amp; AI 요약 아카이브</p>
+                </div>
+            </div>
+
+            <div class="header-nav-actions">
+                <a href="{% url 'curation:index' %}" class="btn-primary" id="btn-go-main">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M19 12H5M12 19l-7-7 7-7"/>
+                    </svg>
+                    <span>새 뉴스 큐레이션하기</span>
+                </a>
+            </div>
+        </header>
+
+        <!-- 메인 콘텐츠 -->
+        <main class="main-content">
+            <div class="history-top-bar">
+                <div class="history-count-badge">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"></path>
+                    </svg>
+                    <span>총 <strong>{{ total_count }}</strong>건의 요약 보관 중</span>
+                </div>
+            </div>
+
+            {% if summaries %}
+            <div class="history-cards-grid" id="history-cards-container">
+                {% for item in summaries %}
+                <article class="news-card history-card" id="history-item-{{ item.id }}">
+                    <div class="card-top-bar">
+                        <div class="history-meta-group">
+                            <span class="save-time-badge">
+                                📅 {{ item.created_at|date:"Y.m.d H:i" }} 저장
+                            </span>
+                            {% if item.keyword %}
+                            <span class="keyword-chip">
+                                🏷️ {{ item.keyword }}
+                            </span>
+                            {% endif %}
+                        </div>
+
+                        <button 
+                            type="button" 
+                            class="btn-delete-item" 
+                            data-id="{{ item.id }}" 
+                            title="히스토리에서 삭제"
+                            aria-label="요약 삭제"
+                        >
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <polyline points="3 6 5 6 21 6"></polyline>
+                                <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+                            </svg>
+                            <span>삭제</span>
+                        </button>
+                    </div>
+
+                    <h3 class="card-title">{{ item.title }}</h3>
+
+                    {% if item.reason %}
+                    <div class="reason-box">
+                        <strong>🎯 AI 선정 이유:</strong>
+                        <span>{{ item.reason }}</span>
+                    </div>
+                    {% endif %}
+
+                    <div class="summary-section">
+                        <h4 class="section-subtitle">핵심 요약 본문</h4>
+                        <ul class="summary-list">
+                            {% for line in item.summary_lines %}
+                            <li class="summary-item">
+                                <span class="summary-bullet"></span>
+                                <span>{{ line }}</span>
+                            </li>
+                            {% endfor %}
+                        </ul>
+                    </div>
+
+                    {% if item.insight %}
+                    <div class="insight-callout">
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83"></path>
+                        </svg>
+                        <div>
+                            <strong>핵심 인사이트:</strong> {{ item.insight }}
+                        </div>
+                    </div>
+                    {% endif %}
+
+                    {% if item.link %}
+                    <div class="card-bottom-bar">
+                        <a href="{{ item.link }}" target="_blank" rel="noopener noreferrer" class="btn-read-origin">
+                            기사 원문 보러가기
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <line x1="7" y1="17" x2="17" y2="7"></line>
+                                <polyline points="7 7 17 7 17 17"></polyline>
+                            </svg>
+                        </a>
+                    </div>
+                    {% endif %}
+                </article>
+                {% endfor %}
+            </div>
+            {% else %}
+            <!-- 보관된 데이터가 없을 때 (Empty State) -->
+            <div class="empty-state-panel glass-panel">
+                <div class="empty-icon">
+                    <svg width="52" height="52" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                        <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+                        <polyline points="14 2 14 8 20 8"></polyline>
+                        <line x1="12" y1="18" x2="12" y2="12"></line>
+                        <line x1="9" y1="15" x2="15" y2="15"></line>
+                    </svg>
+                </div>
+                <h3 class="empty-title">아직 보관된 뉴스 요약이 없습니다.</h3>
+                <p class="empty-desc">
+                    메인 화면에서 관심 키워드로 뉴스를 큐레이션한 뒤,<br>
+                    기사 카드의 <strong>[결과 저장하기]</strong> 버튼을 누르면 이곳에 영구 보관됩니다.
+                </p>
+                <a href="{% url 'curation:index' %}" class="btn-primary empty-btn">
+                    지금 뉴스 큐레이션 시작하기
+                </a>
+            </div>
+            {% endif %}
+        </main>
+
+        <!-- 푸터 -->
+        <footer class="app-footer">
+            <p>© 2026 AI News Curation App • Powered by Django &amp; Google Gemini 2.5 Flash</p>
+        </footer>
+    </div>
+
+    <!-- CSRF Token -->
+    {% csrf_token %}
+
+    <script>
+        // 삭제 기능 인터랙션
+        document.addEventListener('DOMContentLoaded', () => {
+            function getCsrfToken() {
+                const cookieValue = document.cookie
+                    .split('; ')
+                    .find(row => row.startsWith('csrftoken='))
+                    ?.split('=')[1];
+                if (cookieValue) return cookieValue;
+                const csrfInput = document.querySelector('[name=csrfmiddlewaretoken]');
+                return csrfInput ? csrfInput.value : '';
+            }
+
+            document.querySelectorAll('.btn-delete-item').forEach(btn => {
+                btn.addEventListener('click', async (e) => {
+                    const itemId = btn.dataset.id;
+                    if (!itemId) return;
+
+                    if (!confirm('이 뉴스 요약을 히스토리에서 삭제하시겠습니까?')) {
+                        return;
+                    }
+
+                    btn.disabled = true;
+                    btn.querySelector('span').textContent = '삭제 중...';
+
+                    try {
+                        const response = await fetch(`/api/history/${itemId}/delete/`, {
+                            method: 'POST',
+                            headers: {
+                                'X-CSRFToken': getCsrfToken(),
+                            },
+                        });
+                        const data = await response.json();
+
+                        if (data.status === 'success') {
+                            const card = document.getElementById(`history-item-${itemId}`);
+                            if (card) {
+                                card.style.transition = 'all 0.4s ease';
+                                card.style.opacity = '0';
+                                card.style.transform = 'scale(0.95)';
+                                setTimeout(() => {
+                                    card.remove();
+                                    const remaining = document.querySelectorAll('.history-card');
+                                    if (remaining.length === 0) {
+                                        window.location.reload();
+                                    }
+                                }, 400);
+                            }
+                        } else {
+                            alert(data.message || '삭제에 실패했습니다.');
+                            btn.disabled = false;
+                            btn.querySelector('span').textContent = '삭제';
+                        }
+                    } catch (err) {
+                        console.error('Delete request failed:', err);
+                        alert('통신 오류로 삭제에 실패했습니다.');
+                        btn.disabled = false;
+                        btn.querySelector('span').textContent = '삭제';
+                    }
+                });
+            });
+        });
+    </script>
+</body>
+</html>

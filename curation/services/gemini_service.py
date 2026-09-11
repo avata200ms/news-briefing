@@ -2,6 +2,7 @@
 
 import json
 import os
+from pathlib import Path
 
 from dotenv import load_dotenv
 from google import genai
@@ -10,7 +11,8 @@ from google.genai import types
 from curation.services.models import CuratedArticle, GeminiCurationOutput, RawArticle
 from curation.services.naver_service import MissingAPIKeyError
 
-load_dotenv()
+BASE_DIR = Path(__file__).resolve().parent.parent.parent
+load_dotenv(BASE_DIR / ".env", override=True)
 
 
 class GeminiCurationError(Exception):

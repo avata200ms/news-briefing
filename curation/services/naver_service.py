@@ -3,6 +3,7 @@
 import html
 import os
 import re
+from pathlib import Path
 from typing import Any
 
 import httpx
@@ -10,7 +11,8 @@ from dotenv import load_dotenv
 
 from curation.services.models import RawArticle
 
-load_dotenv()
+BASE_DIR = Path(__file__).resolve().parent.parent.parent
+load_dotenv(BASE_DIR / ".env", override=True)
 
 
 class NaverAPIError(Exception):
@@ -115,7 +117,9 @@ def fetch_naver_news(query: str, display: int = 20) -> list[RawArticle]:
                     else:
                         error_data = (
                             response.json()
-                            if response.headers.get("content-type", "").startswith("application/json")
+                            if response.headers.get("content-type", "").startswith(
+                                "application/json"
+                            )
                             else {}
                         )
                         last_error_msg = error_data.get("errorMessage", response.text)

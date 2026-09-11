@@ -31,7 +31,7 @@
                 </div>
                 <div>
                     <h1 class="brand-title">AI 뉴스 큐레이터</h1>
-                    <p class="brand-subtitle">네이버 뉴스 20건 실시간 수집 &amp; Gemini 2.5 AI 초정밀 3대 뉴스 엄선</p>
+                    <p class="brand-subtitle">네이버 뉴스 20건 실시간 수집 &amp; Google Gemini AI 초정밀 3대 뉴스 엄선</p>
                 </div>
             </div>
 
@@ -44,7 +44,7 @@
                     </span>
                     <span class="status-chip {% if has_gemini_key %}active{% else %}warning{% endif %}" id="chip-gemini-status">
                         <span class="dot"></span>
-                        Gemini 2.5 AI: {% if has_gemini_key %}연결됨{% else %}키 미설정{% endif %}
+                        Gemini AI: {% if has_gemini_key %}연결됨 ({{ gemini_model }}){% else %}키 미설정{% endif %}
                     </span>
                 </div>
                 <button class="btn-info" id="btn-open-api-modal" title="API Key 설정 안내">

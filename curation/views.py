@@ -6,7 +6,7 @@ from typing import Any
 
 from django.http import HttpRequest, HttpResponse, JsonResponse
 from django.shortcuts import render
-from django.views.decorators.csrf import ensure_csrf_cookie
+from django.views.decorators.csrf import csrf_exempt, ensure_csrf_cookie
 from django.views.decorators.http import require_GET, require_POST
 
 from curation.models import SavedSummary
@@ -19,6 +19,10 @@ from curation.services.pipeline import run_curation_pipeline
 @require_GET
 def index(request: HttpRequest) -> HttpResponse:
     """메인 대시보드 뷰."""
+    from django.conf import settings
+    from dotenv import load_dotenv
+
+    load_dotenv(settings.BASE_DIR / ".env", override=True)
     has_naver_id = bool(os.getenv("NAVER_CLIENT_ID", "").strip())
     has_naver_secret = bool(os.getenv("NAVER_CLIENT_SECRET", "").strip())
     has_gemini = bool(os.getenv("GEMINI_API_KEY", "").strip())
@@ -26,12 +30,13 @@ def index(request: HttpRequest) -> HttpResponse:
     context: dict[str, Any] = {
         "has_naver_keys": has_naver_id and has_naver_secret,
         "has_gemini_key": has_gemini,
-        "gemini_model": os.getenv("GEMINI_MODEL", "gemini-2.5-flash"),
+        "gemini_model": os.getenv("GEMINI_MODEL", "gemini-3.6-flash"),
         "all_keys_ready": has_naver_id and has_naver_secret and has_gemini,
     }
     return render(request, "curation/index.html", context)
 
 
+@csrf_exempt
 @require_POST
 def curate_api(request: HttpRequest) -> JsonResponse:
     """사용자의 키워드와 필터링 프롬프트를 접수하여 네이버 검색 및 Gemini 큐레이션을 실행하는 API."""
@@ -100,6 +105,7 @@ def curate_api(request: HttpRequest) -> JsonResponse:
         )
 
 
+@csrf_exempt
 @require_POST
 def save_summary_api(request: HttpRequest) -> JsonResponse:
     """AI 요약 결과를 데이터베이스에 저장하는 API."""
@@ -192,6 +198,7 @@ def history_view(request: HttpRequest) -> HttpResponse:
     return render(request, "curation/history.html", context)
 
 
+@csrf_exempt
 @require_POST
 def delete_summary_api(request: HttpRequest, item_id: int) -> JsonResponse:
     """저장된 뉴스 요약 항목을 삭제하는 API."""

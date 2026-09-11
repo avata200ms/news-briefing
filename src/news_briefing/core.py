@@ -20,7 +20,7 @@ class ProjectSettings(BaseModel):
     debug: bool = Field(default=True, description="디버그 모드")
     log_level: str = Field(default="INFO", description="로그 레벨")
     gemini_api_key: str = Field(default="", description="Google Gemini API 키")
-    gemini_model: str = Field(default="gemini-2.5-flash", description="기본 Gemini 모델명")
+    gemini_model: str = Field(default="gemini-3.6-flash", description="기본 Gemini 모델명")
 
     @classmethod
     def load_from_env(cls) -> "ProjectSettings":
@@ -31,7 +31,7 @@ class ProjectSettings(BaseModel):
             debug=os.getenv("DEBUG", "True").lower() in ("true", "1", "t"),
             log_level=os.getenv("LOG_LEVEL", "INFO"),
             gemini_api_key=os.getenv("GEMINI_API_KEY", ""),
-            gemini_model=os.getenv("GEMINI_MODEL", "gemini-2.5-flash"),
+            gemini_model=os.getenv("GEMINI_MODEL", "gemini-3.6-flash"),
         )
 
 

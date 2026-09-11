@@ -9,7 +9,7 @@ def test_project_settings_default() -> None:
     assert settings.app_name == "news-briefing"
     assert settings.app_env in ("development", "test", "production")
     assert isinstance(settings.debug, bool)
-    assert settings.gemini_model == "gemini-2.5-flash"
+    assert settings.gemini_model == "gemini-3.6-flash"
 
 
 def test_get_system_info() -> None:

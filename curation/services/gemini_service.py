@@ -45,6 +45,9 @@ def curate_and_summarize(articles: list[RawArticle], filter_prompt: str) -> list
         raise GeminiCurationError("분석할 기사 목록이 비어 있습니다.")
 
     model_name = os.getenv("GEMINI_MODEL", "gemini-3.6-flash").strip()
+    # 구글에서 404를 반환하는 구버전 모델(2.5 등) 또는 빈 값일 경우 자동으로 gemini-3.6-flash로 대체
+    if not model_name or "2.5" in model_name or "1.5" in model_name:
+        model_name = "gemini-3.6-flash"
 
     # 기사 목록 텍스트 구성
     articles_text_blocks: list[str] = []

@@ -36,8 +36,12 @@ def test_curate_api_missing_fields() -> None:
     assert "필터링 프롬프트를 입력해 주세요" in response.json()["message"]
 
 
-def test_curate_api_demo_fallback() -> None:
+def test_curate_api_demo_fallback(monkeypatch) -> None:
     """API 키 미설정 시 데모 데이터 fallback 200 반환 테스트."""
+    monkeypatch.delenv("NAVER_CLIENT_ID", raising=False)
+    monkeypatch.delenv("NAVER_CLIENT_SECRET", raising=False)
+    monkeypatch.delenv("GEMINI_API_KEY", raising=False)
+
     client = Client()
     response = client.post(
         reverse("curation:curate_api"),
@@ -55,3 +59,4 @@ def test_curate_api_demo_fallback() -> None:
     assert res_data["status"] == "success"
     assert len(res_data["data"]["curated_articles"]) == 3
     assert res_data["data"]["total_searched"] == 20
+    assert res_data["data"]["metadata"]["is_demo"] is True

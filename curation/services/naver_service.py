@@ -57,53 +57,74 @@ def fetch_naver_news(query: str, display: int = 20) -> list[RawArticle]:
 
     if not client_id or not client_secret:
         raise MissingAPIKeyError(
-            "네이버 검색 API 키가 설정되지 않았습니다. .env 파일에 NAVER_CLIENT_ID와 NAVER_CLIENT_SECRET을 입력해주세요. (https://developers.naver.com/apps/#/register)"
+            "네이버 검색 API 키가 설정되지 않았습니다. .env 파일에 NAVER_CLIENT_ID와 NAVER_CLIENT_SECRET을 입력해주세요."
         )
 
-    url = "https://openapi.naver.com/v1/search/news.json"
-    headers = {
-        "X-Naver-Client-Id": client_id,
-        "X-Naver-Client-Secret": client_secret,
-        "User-Agent": "NewsBriefingApp/1.0",
-    }
     params: dict[str, Any] = {
         "query": query,
         "display": display,
         "sort": "sim",  # 정확도순
     }
 
+    # NAVER API HUB 및 네이버 개발자 센터 두 가지 엔드포인트와 인증 헤더 지원
+    endpoints = [
+        {
+            "name": "NAVER API HUB",
+            "url": "https://naverapihub.apigw.ntruss.com/search/v1/news",
+            "headers": {
+                "X-NCP-APIGW-API-KEY-ID": client_id,
+                "X-NCP-APIGW-API-KEY": client_secret,
+                "User-Agent": "NewsBriefingApp/1.0",
+            },
+        },
+        {
+            "name": "네이버 개발자 센터",
+            "url": "https://openapi.naver.com/v1/search/news.json",
+            "headers": {
+                "X-Naver-Client-Id": client_id,
+                "X-Naver-Client-Secret": client_secret,
+                "User-Agent": "NewsBriefingApp/1.0",
+            },
+        },
+    ]
+
+    last_error_msg = ""
+    last_status_code = 0
+
     try:
         with httpx.Client(timeout=10.0) as client:
-            response = client.get(url, headers=headers, params=params)
+            for ep in endpoints:
+                try:
+                    response = client.get(ep["url"], headers=ep["headers"], params=params)
+                    if response.status_code == 200:
+                        data = response.json()
+                        items = data.get("items", [])
+                        articles: list[RawArticle] = []
+                        for idx, item in enumerate(items, start=1):
+                            articles.append(
+                                RawArticle(
+                                    index=idx,
+                                    title=clean_html(item.get("title", "")),
+                                    link=item.get("link", "") or item.get("originallink", ""),
+                                    originallink=item.get("originallink", ""),
+                                    description=clean_html(item.get("description", "")),
+                                    pub_date=item.get("pubDate", ""),
+                                )
+                            )
+                        return articles
+                    else:
+                        error_data = (
+                            response.json()
+                            if response.headers.get("content-type", "").startswith("application/json")
+                            else {}
+                        )
+                        last_error_msg = error_data.get("errorMessage", response.text)
+                        last_status_code = response.status_code
+                except httpx.RequestError as req_err:
+                    last_error_msg = str(req_err)
 
-        if response.status_code != 200:
-            error_data = (
-                response.json()
-                if response.headers.get("content-type", "").startswith("application/json")
-                else {}
-            )
-            error_msg = error_data.get("errorMessage", response.text)
-            raise NaverAPIError(
-                f"네이버 뉴스 검색 실패 (상태 코드: {response.status_code}): {error_msg}"
-            )
-
-        data = response.json()
-        items = data.get("items", [])
-
-        articles: list[RawArticle] = []
-        for idx, item in enumerate(items, start=1):
-            articles.append(
-                RawArticle(
-                    index=idx,
-                    title=clean_html(item.get("title", "")),
-                    link=item.get("link", "") or item.get("originallink", ""),
-                    originallink=item.get("originallink", ""),
-                    description=clean_html(item.get("description", "")),
-                    pub_date=item.get("pubDate", ""),
-                )
-            )
-
-        return articles
-
+        raise NaverAPIError(
+            f"네이버 뉴스 검색 실패 (상태 코드: {last_status_code}): {last_error_msg}"
+        )
     except httpx.RequestError as exc:
         raise NaverAPIError(f"네이버 API 네트워크 통신 오류: {exc}") from exc

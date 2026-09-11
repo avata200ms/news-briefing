@@ -180,9 +180,24 @@ document.addEventListener('DOMContentLoaded', () => {
             btnSaveAllResults.querySelector('span').textContent = '3건 전체 저장하기';
         }
 
-        // 데모 모드 배너
+        // 데모 모드 배너 (상세 에러 원인 안내)
         if (result.metadata && result.metadata.is_demo) {
             demoBanner.style.display = 'flex';
+            const errorMsg = result.metadata.original_error;
+            const bannerSpan = demoBanner.querySelector('span');
+            if (bannerSpan) {
+                if (errorMsg) {
+                    if (errorMsg.includes('401') || errorMsg.includes('Authentication failed')) {
+                        bannerSpan.innerHTML = `<strong>[네이버 검색 API 인증 실패 (401)]</strong> 네이버 개발자 센터에서 Client ID/Secret 및 'API 설정 &gt; 검색' 권한이 켜져 있는지 확인해 주세요. (현재 데모 데이터 시연 중)`;
+                    } else if (errorMsg.includes('Gemini')) {
+                        bannerSpan.innerHTML = `<strong>[Gemini AI 호출 오류]</strong> ${escapeHtml(errorMsg)} (현재 데모 데이터 시연 중)`;
+                    } else {
+                        bannerSpan.innerHTML = `<strong>[외부 API 오류]</strong> ${escapeHtml(errorMsg)} (현재 데모 데이터 시연 중)`;
+                    }
+                } else {
+                    bannerSpan.innerHTML = `현재 .env의 API 키가 비어있어 <strong>시뮬레이션 데모 데이터</strong>로 시연되었습니다. 실제 실시간 뉴스를 조회하려면 .env에 네이버 및 Gemini API 키를 입력해주세요.`;
+                }
+            }
         } else {
             demoBanner.style.display = 'none';
         }

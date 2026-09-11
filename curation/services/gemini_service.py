@@ -42,7 +42,7 @@ def curate_and_summarize(articles: list[RawArticle], filter_prompt: str) -> list
     if not articles:
         raise GeminiCurationError("분석할 기사 목록이 비어 있습니다.")
 
-    model_name = os.getenv("GEMINI_MODEL", "gemini-2.5-flash").strip()
+    model_name = os.getenv("GEMINI_MODEL", "gemini-3.6-flash").strip()
 
     # 기사 목록 텍스트 구성
     articles_text_blocks: list[str] = []

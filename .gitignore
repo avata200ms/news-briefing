@@ -43,6 +43,8 @@ local_settings.py
 db.sqlite3
 db.sqlite3-journal
 media/
+staticfiles/
+.playwright-mcp/
 
 # Testing and Type Checking
 .pytest_cache/

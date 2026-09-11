@@ -112,7 +112,9 @@ def run_curation_pipeline(
             metadata={"is_demo": False},
         )
     except Exception as exc:
-        if allow_demo_fallback and "API 키가 설정되지 않았습니다" in str(exc):
-            logger.warning("API 키 누락으로 데모 모드로 전환합니다: %s", exc)
-            return generate_mock_data(keyword=keyword, filter_prompt=filter_prompt)
+        if allow_demo_fallback:
+            logger.warning("외부 API 호출 실패 또는 키 오류로 데모 모드로 전환합니다: %s", exc)
+            demo_result = generate_mock_data(keyword=keyword, filter_prompt=filter_prompt)
+            demo_result.metadata["original_error"] = str(exc)
+            return demo_result
         raise

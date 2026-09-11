@@ -6,8 +6,11 @@ import re
 from typing import Any
 
 import httpx
+from dotenv import load_dotenv
 
 from curation.services.models import RawArticle
+
+load_dotenv()
 
 
 class NaverAPIError(Exception):

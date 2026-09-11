@@ -1,0 +1,270 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI 뉴스 큐레이터 - 맞춤형 뉴스 브리핑</title>
+    <meta name="description" content="네이버 뉴스 검색과 Google Gemini AI를 결합한 스마트 뉴스 큐레이션 서비스">
+    
+    <!-- Google Fonts: Inter & Pretendard CDN -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Noto+Sans+KR:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    
+    {% load static %}
+    <link rel="stylesheet" href="{% static 'curation/style.css' %}">
+</head>
+<body>
+    <!-- 배경 글로우 오브젝트 -->
+    <div class="glow-sphere glow-1"></div>
+    <div class="glow-sphere glow-2"></div>
+    <div class="glow-sphere glow-3"></div>
+
+    <div class="app-wrapper">
+        <!-- 헤더 섹션 -->
+        <header class="app-header">
+            <div class="brand-area">
+                <div class="brand-icon">
+                    <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon>
+                    </svg>
+                </div>
+                <div>
+                    <h1 class="brand-title">AI 뉴스 큐레이터</h1>
+                    <p class="brand-subtitle">네이버 뉴스 20건 실시간 수집 &amp; Gemini 2.5 AI 초정밀 3대 뉴스 엄선</p>
+                </div>
+            </div>
+
+            <!-- API 키 설정 현황 상태 바 -->
+            <div class="api-status-bar" id="api-status-bar">
+                <div class="status-indicator-group">
+                    <span class="status-chip {% if has_naver_keys %}active{% else %}warning{% endif %}" id="chip-naver-status">
+                        <span class="dot"></span>
+                        네이버 검색 API: {% if has_naver_keys %}연결됨{% else %}키 미설정{% endif %}
+                    </span>
+                    <span class="status-chip {% if has_gemini_key %}active{% else %}warning{% endif %}" id="chip-gemini-status">
+                        <span class="dot"></span>
+                        Gemini 2.5 AI: {% if has_gemini_key %}연결됨{% else %}키 미설정{% endif %}
+                    </span>
+                </div>
+                <button class="btn-info" id="btn-open-api-modal" title="API Key 설정 안내">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <circle cx="12" cy="12" r="10"></circle>
+                        <line x1="12" y1="16" x2="12" y2="12"></line>
+                        <line x1="12" y1="8" x2="12.01" y2="8"></line>
+                    </svg>
+                    API Key 설정 안내
+                </button>
+            </div>
+        </header>
+
+        <!-- 메인 인터랙션 폼 (Glass Card) -->
+        <main class="main-content">
+            <section class="glass-panel form-panel">
+                <form id="curation-form" onsubmit="return false;">
+                    <div class="form-grid">
+                        <!-- 1. 키워드 입력 -->
+                        <div class="form-group">
+                            <label for="input-keyword" class="form-label">
+                                <span class="label-number">01</span>
+                                <span class="label-text">검색 키워드</span>
+                                <span class="label-desc">네이버 뉴스에서 수집할 주제를 입력하세요.</span>
+                            </label>
+                            <div class="input-container">
+                                <svg class="input-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <circle cx="11" cy="11" r="8"></circle>
+                                    <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+                                </svg>
+                                <input 
+                                    type="text" 
+                                    id="input-keyword" 
+                                    name="keyword" 
+                                    placeholder="예: 생성형 AI, 전기차 배터리, 온디바이스 AI, K-반도체" 
+                                    required 
+                                    autocomplete="off"
+                                >
+                            </div>
+                        </div>
+
+                        <!-- 2. 필터링 프롬프트 입력 -->
+                        <div class="form-group">
+                            <label for="input-filter-prompt" class="form-label">
+                                <span class="label-number">02</span>
+                                <span class="label-text">AI 필터링 프롬프트</span>
+                                <span class="label-desc">Gemini AI가 20개 기사 중 3개를 엄선할 기준을 구체적으로 적어주세요.</span>
+                            </label>
+                            <textarea 
+                                id="input-filter-prompt" 
+                                name="filter_prompt" 
+                                rows="3" 
+                                placeholder="예: 단순 주가 소식은 제외하고, 기술 개발 성과나 국내외 기업 간의 실질적인 협력 및 상용화 소식 위주로 골라줘."
+                                required
+                            ></textarea>
+                        </div>
+                    </div>
+
+                    <!-- 추천 프리셋 칩 -->
+                    <div class="preset-section">
+                        <span class="preset-label">💡 빠른 추천 프리셋:</span>
+                        <div class="preset-chips" id="preset-chips-container">
+                            <button type="button" class="chip-btn" data-keyword="생성형 AI" data-filter="단순 모델 공개보다는 산업 현장에 실제 도입되어 생산성을 개선한 사례나 비즈니스 매출 관련 기사 위주로 골라줘.">
+                                🤖 AI 산업 현장 도입 &amp; 매출
+                            </button>
+                            <button type="button" class="chip-btn" data-keyword="K-반도체" data-filter="HBM(고대역폭메모리) 양산 일정과 글로벌 빅테크 공급망 계약 관련 호재 기사 위주로 골라줘.">
+                                ⚡ HBM &amp; 반도체 공급망
+                            </button>
+                            <button type="button" class="chip-btn" data-keyword="자율주행" data-filter="규제 장벽이나 사고 리스크 등 기술적 한계와 비판적 시각을 균형 있게 다룬 기사를 우선 선별해줘.">
+                                🚗 자율주행 규제 &amp; 기술적 한계
+                            </button>
+                            <button type="button" class="chip-btn" data-keyword="우주 항공 산업" data-filter="민간 주도 우주 개발(뉴스페이스) 성과와 정부의 신규 투자 정책 소식 위주로 선정해줘.">
+                                🚀 뉴스페이스 &amp; 정부 투자
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- 제출 액션 바 -->
+                    <div class="form-action-bar">
+                        <div class="demo-toggle-wrap">
+                            <label class="toggle-label" for="toggle-demo-mode">
+                                <input type="checkbox" id="toggle-demo-mode" checked>
+                                <span class="toggle-slider"></span>
+                                <span class="toggle-text">API Key 미설정 시 데모 데이터 자동 체험 허용</span>
+                            </label>
+                        </div>
+
+                        <button type="button" id="btn-curate" class="btn-primary">
+                            <span class="btn-text">AI 큐레이션 실행</span>
+                            <span class="btn-icon">
+                                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <line x1="5" y1="12" x2="19" y2="12"></line>
+                                    <polyline points="12 5 19 12 12 19"></polyline>
+                                </svg>
+                            </span>
+                        </button>
+                    </div>
+                </form>
+            </section>
+
+            <!-- 로딩 인디케이터 (비동기 처리 시 활성화) -->
+            <section class="loading-panel" id="loading-panel" style="display: none;">
+                <div class="spinner-ring"></div>
+                <h3 class="loading-title" id="loading-title">AI가 뉴스를 수집하고 있습니다...</h3>
+                <p class="loading-subtitle" id="loading-subtitle">네이버 뉴스 검색 API에서 최신 기사 20건을 가져오는 중입니다.</p>
+                <div class="loading-steps">
+                    <div class="step-badge active" id="step-naver">
+                        <span class="step-num">1</span> 네이버 기사 20건 수집
+                    </div>
+                    <div class="step-connector"></div>
+                    <div class="step-badge" id="step-gemini">
+                        <span class="step-num">2</span> Gemini 2.5 심층 분석 &amp; 3대 기사 엄선
+                    </div>
+                </div>
+            </section>
+
+            <!-- 결과 표시 섹션 -->
+            <section class="results-section" id="results-section" style="display: none;">
+                <div class="results-header">
+                    <div>
+                        <div class="badge-curated">
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor">
+                                <path d="M12 2L15.09 8.26L22 9.27L17 14.14L18.18 21.02L12 17.77L5.82 21.02L7 14.14L2 9.27L8.91 8.26L12 2Z"/>
+                            </svg>
+                            AI 큐레이션 완료
+                        </div>
+                        <h2 class="results-title">
+                            '<span id="res-keyword"></span>' 핵심 기사 TOP 3
+                        </h2>
+                        <p class="results-meta" id="res-meta-info"></p>
+                    </div>
+                    <button class="btn-secondary" id="btn-scroll-to-search">
+                        새로운 키워드로 검색
+                    </button>
+                </div>
+
+                <!-- 데모 모드 알림 배너 (필요 시) -->
+                <div class="demo-banner" id="demo-banner" style="display: none;">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <circle cx="12" cy="12" r="10"></circle>
+                        <line x1="12" y1="8" x2="12" y2="12"></line>
+                        <line x1="12" y1="16" x2="12.01" y2="16"></line>
+                    </svg>
+                    <span>현재 .env의 API 키가 비어있어 <strong>시뮬레이션 데모 데이터</strong>로 시연되었습니다. 실제 실시간 뉴스를 조회하려면 .env에 네이버 및 Gemini API 키를 입력해주세요.</span>
+                </div>
+
+                <!-- 3대 엄선 기사 카드 컨테이너 -->
+                <div class="cards-grid" id="curated-cards-container">
+                    <!-- JS로 동적 렌더링 -->
+                </div>
+
+                <!-- 20개 전체 기사 아코디언 -->
+                <div class="raw-section">
+                    <button class="accordion-toggle" id="btn-toggle-raw">
+                        <span class="accordion-title">
+                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+                                <polyline points="14 2 14 8 20 8"></polyline>
+                                <line x1="16" y1="13" x2="8" y2="13"></line>
+                                <line x1="16" y1="17" x2="8" y2="17"></line>
+                                <polyline points="10 9 9 9 8 9"></polyline>
+                            </svg>
+                            네이버에서 수집된 전체 20건 원본 기사 목록 확인하기
+                        </span>
+                        <span class="accordion-arrow" id="accordion-arrow">▼</span>
+                    </button>
+                    <div class="accordion-content" id="raw-articles-container" style="display: none;">
+                        <!-- JS로 동적 렌더링 -->
+                    </div>
+                </div>
+            </section>
+        </main>
+
+        <!-- 푸터 -->
+        <footer class="app-footer">
+            <p>© 2026 AI News Curation App • Powered by Django, Naver Open API &amp; Google Gemini 2.5 Flash</p>
+        </footer>
+    </div>
+
+    <!-- API 설정 가이드 모달 -->
+    <div class="modal-backdrop" id="api-modal-backdrop" style="display: none;">
+        <div class="modal-dialog glass-panel">
+            <div class="modal-header">
+                <h3>🔑 API 키 설정 가이드</h3>
+                <button class="modal-close-btn" id="btn-close-modal">&times;</button>
+            </div>
+            <div class="modal-body">
+                <p>본 서비스는 <strong>실시간 뉴스 검색</strong> 및 <strong>AI 선별/요약</strong>을 위해 두 가지 무료 API를 사용합니다.</p>
+                
+                <div class="guide-box">
+                    <h4>1. Naver Search API (네이버 뉴스 검색)</h4>
+                    <p>• 발급처: <a href="https://developers.naver.com/apps/#/register" target="_blank" rel="noopener">네이버 개발자 센터</a></p>
+                    <p>• 애플리케이션 등록 시 '검색' 서비스 선택</p>
+                    <p>• 발급받은 <code>Client ID</code>와 <code>Client Secret</code>을 <code>.env</code> 파일에 입력</p>
+                </div>
+
+                <div class="guide-box">
+                    <h4>2. Google Gemini API (AI 선별 및 3줄 요약)</h4>
+                    <p>• 발급처: <a href="https://aistudio.google.com/" target="_blank" rel="noopener">Google AI Studio</a></p>
+                    <p>• 무료 API Key 생성 후 <code>.env</code> 파일의 <code>GEMINI_API_KEY</code>에 입력</p>
+                </div>
+
+                <div class="env-code-sample">
+                    <code>
+# 프로젝트 루트 디렉토리의 .env 파일에 작성<br>
+NAVER_CLIENT_ID=your_naver_id<br>
+NAVER_CLIENT_SECRET=your_naver_secret<br>
+GEMINI_API_KEY=AIzaSy...<br>
+GEMINI_MODEL=gemini-2.5-flash
+                    </code>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn-primary" id="btn-modal-confirm">확인</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- CSRF Token helper -->
+    {% csrf_token %}
+    <script src="{% static 'curation/app.js' %}"></script>
+</body>
+</html>

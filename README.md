@@ -1,116 +1,90 @@
-# News Briefing (뉴스 브리핑)
+# AI 뉴스 큐레이터 (AI News Curation App)
 
-Django와 Google Gemini API를 활용한 맞춤형 AI 뉴스 브리핑 서비스 프로젝트입니다.
-**Astral uv**를 통해 Python 3.12 환경 및 의존성을 관리합니다.
-
----
-
-## 📌 주요 기술 스택 및 환경
-- **Python**: 3.12 (CPython 3.12.14 고정)
-- **패키지 및 가상환경 관리**: [Astral uv](https://github.com/astral-sh/uv)
-- **웹 프레임워크**: Django 6.x
-- **생성형 AI SDK**: `google-genai` (공식 Google Gemini API SDK)
-- **데이터 모델링 & 설정**: `pydantic`, `python-dotenv`
-- **코드 품질 도구**: `ruff` (Linter/Formatter), `mypy` (Type Checker), `pytest` / `pytest-django`
+네이버 뉴스 검색 API와 Google 최신 **Gemini 2.5 Flash**를 결합하여, 사용자가 원하는 키워드와 필터링 조건에 부합하는 **핵심 기사 3개를 엄선 및 3줄 요약**해 주는 스마트 뉴스 브리핑 웹 애플리케이션입니다.
 
 ---
 
-## ⚡ 핵심 실행 원칙: `uv run` 필수 사용
+## 🌟 핵심 기능
+
+1. **실시간 뉴스 검색**: 네이버 뉴스 오픈 API를 통해 입력된 키워드로 최신 20건의 뉴스 기사를 실시간 수집.
+2. **AI 스마트 큐레이션**: 사용자가 제시한 '필터링 프롬프트' 기준에 따라 Gemini 2.5 AI가 기사 3건을 정밀 엄선.
+3. **핵심 3줄 요약 & 시사점 도출**: 선정된 각 기사의 선정 이유, 3줄 핵심 요약, 그리고 인사이트 제공.
+4. **프리미엄 Glassmorphism 웹 인터페이스**: 다크 모드 기반 세련된 카드 UI, 단계별 실시간 로딩 애니메이션, 수집된 20건 원본 기사 투명 검증 아코디언.
+5. **CLI & Web 동시 지원**: 브라우저 UI뿐만 아니라 터미널 CLI에서도 한 줄 명령어로 즉시 큐레이션 가능.
+6. **데모 시뮬레이션 지원**: API 키가 아직 없는 상태에서도 UI 인터랙션을 즉시 테스트할 수 있는 데모 프리뷰 모드 탑재.
+
+---
+
+## 🔑 환경 변수 (.env) 설정
+
+프로젝트 루트의 `.env` 파일에 네이버 및 Gemini API 키를 입력합니다:
+
+```ini
+# Application Settings
+APP_ENV=development
+DEBUG=True
+
+# Google Gemini API Settings (https://aistudio.google.com/)
+GEMINI_API_KEY=your_gemini_api_key_here
+GEMINI_MODEL=gemini-2.5-flash
+
+# Naver Search API Settings (https://developers.naver.com/apps/#/register)
+NAVER_CLIENT_ID=your_naver_client_id_here
+NAVER_CLIENT_SECRET=your_naver_client_secret_here
+```
+
+---
+
+## 🚀 실행 가이드
 
 > [!IMPORTANT]
-> 본 프로젝트에서는 시스템 파이썬을 직접 호출하지 않고, **항상 `uv run` 명령어를 통해 `.venv` 가상환경 내에서 파이썬과 도구를 실행**합니다.
+> 본 프로젝트의 모든 Python/Django 작업은 워크스페이스 원칙에 따라 **`uv run`** 명령어를 사용합니다.
 
-```bash
-# 올바른 실행 방식 (가상환경 자동 연동)
-uv run python <스크립트.py>
-uv run news-briefing
-uv run pytest
-uv run ruff check .
-
-# 피해야 할 방식 (시스템 파이썬 직접 호출)
-# python <스크립트.py>
-```
-
----
-
-## 🚀 빠른 시작 (Quick Start)
-
-### 1. 환경 변수 설정
-`.env.example` 파일을 복사하여 `.env`를 설정하고, Gemini API 키를 입력합니다.
+### 1. 웹 애플리케이션 실행
+Django 개발 서버를 실행하고 브라우저에서 `http://127.0.0.1:8000`에 접속합니다:
 ```powershell
-cp .env.example .env
-```
-`.env` 파일에 발급받은 Gemini API 키 입력:
-```ini
-GEMINI_API_KEY=your_gemini_api_key_here
-```
-
-### 2. 가상환경 및 의존성 동기화
-```powershell
-uv sync
-```
-
-### 3. 프로젝트 초기 실행 및 상태 점검
-```powershell
-uv run news-briefing
-```
-또는 PowerShell 편의 런처 사용:
-```powershell
-.\dev.ps1 run
-```
-
----
-
-## 🛠️ 개발 명령어 가이드
-
-편의 스크립트(`.\dev.ps1`) 또는 `uv run` 명령어를 통해 실행할 수 있습니다.
-
-| 작업 | uv 명령어 | dev.ps1 편의 명령어 |
-| :--- | :--- | :--- |
-| **프로젝트 실행** | `uv run news-briefing` | `.\dev.ps1 run` |
-| **단위 테스트** | `uv run pytest -v` | `.\dev.ps1 test` |
-| **코드 린트** | `uv run ruff check .` | `.\dev.ps1 lint` |
-| **코드 포맷팅** | `uv run ruff format .` | `.\dev.ps1 format` |
-| **타입 검사** | `uv run mypy src` | `.\dev.ps1 typecheck` |
-| **품질 종합 검증** | - | `.\dev.ps1 check` |
-| **의존성 동기화** | `uv sync` | `.\dev.ps1 sync` |
-| **패키지 추가** | `uv add <패키지명>` | - |
-| **개발 패키지 추가**| `uv add --dev <패키지명>` | - |
-
----
-
-## 🌐 Django 개발 가이드 (향후 진행 시)
-
-Django 앱 생성 또는 마이그레이션, 서버 실행 시에도 `uv run`을 사용합니다:
-```powershell
-# Django 프로젝트 시작 (필요 시)
-uv run django-admin startproject config .
-
-# 데이터베이스 마이그레이션
-uv run python manage.py migrate
-
-# 개발 서버 실행
 uv run python manage.py runserver
 # 또는
 .\dev.ps1 django manage.py runserver
 ```
 
+### 2. 터미널 CLI 큐레이션 실행
+웹 브라우저 없이 터미널에서 즉시 기사를 큐레이션할 수 있습니다:
+```powershell
+uv run news-briefing -k "인공지능 반도체" -f "국내 기업의 양산 및 수출 성과 위주"
+```
+
+### 3. 단위 테스트 및 코드 품질 점검
+```powershell
+# 단위 테스트 (11개 테스트)
+uv run pytest -v
+
+# 린트 & 포맷 & 타입 & 테스트 종합 무결성 검증
+.\dev.ps1 check
+```
+
 ---
 
-## 🤖 Google Gemini API 사용 예시
+## 🏗️ 아키텍처 구성
 
-```python
-from google import genai
-import os
-from dotenv import load_dotenv
-
-load_dotenv()
-
-# 클라이언트 초기화 (GEMINI_API_KEY 환경변수 자동 인식)
-client = genai.Client(api_key=os.getenv("GEMINI_API_KEY"))
-
-response = client.models.generate_content(
-    model="gemini-2.5-flash", contents="오늘의 주요 IT 뉴스를 한 줄로 요약해줘."
-)
-print(response.text)
+```
+news-briefing/
+├── config/                  # Django 메인 설정 및 루트 URL 라우팅
+│   ├── settings.py
+│   └── urls.py
+├── curation/                # 뉴스 큐레이션 메인 앱
+│   ├── services/            # 핵심 비즈니스 로직
+│   │   ├── naver_service.py # 네이버 뉴스 검색 API 클라이언트 & HTML 정제
+│   │   ├── gemini_service.py# Google Gemini 2.5 큐레이션 & 요약 엔진
+│   │   ├── pipeline.py      # 수집-선별 통합 파이프라인 & 데모 생성
+│   │   └── models.py        # Pydantic 도메인 모델
+│   ├── templates/curation/  # Glassmorphism 반응형 HTML 템플릿
+│   ├── static/curation/     # Vanilla CSS & 동적 비동기 인터랙션 JS
+│   ├── views.py             # 대시보드 뷰 & 비동기 큐레이션 API
+│   └── urls.py
+├── src/news_briefing/       # 패키지 엔트리포인트 및 콘솔 CLI
+├── tests/                   # pytest 단위/통합 테스트 스위트
+├── dev.ps1                  # 개발 편의 PowerShell 런처
+├── pyproject.toml           # uv 의존성 및 툴 설정
+└── .env                     # API 키 및 환경 설정
 ```

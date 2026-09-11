@@ -44,10 +44,16 @@ def curate_and_summarize(articles: list[RawArticle], filter_prompt: str) -> list
     if not articles:
         raise GeminiCurationError("분석할 기사 목록이 비어 있습니다.")
 
-    model_name = os.getenv("GEMINI_MODEL", "gemini-3.6-flash").strip()
-    # 구글에서 404를 반환하는 구버전 모델(2.5 등) 또는 빈 값일 경우 자동으로 gemini-3.6-flash로 대체
+    model_name = os.getenv("GEMINI_MODEL", "gemini-3.5-flash").strip()
     if not model_name or "2.5" in model_name or "1.5" in model_name:
-        model_name = "gemini-3.6-flash"
+        model_name = "gemini-3.5-flash"
+
+    # 우선순위별 Fallback 모델 체인 구성
+    candidate_models: list[str] = [model_name]
+    fallback_pool = ["gemini-3.5-flash", "gemini-3.5-flash-lite", "gemini-3.6-flash"]
+    for fb in fallback_pool:
+        if fb not in candidate_models:
+            candidate_models.append(fb)
 
     # 기사 목록 텍스트 구성
     articles_text_blocks: list[str] = []
@@ -76,50 +82,62 @@ def curate_and_summarize(articles: list[RawArticle], filter_prompt: str) -> list
         f"위 20건의 기사 중에서 사용자의 필터링 기준에 가장 잘 맞는 기사 **정확히 3건**을 선정하여 응답 스키마에 맞게 JSON으로 출력해 주세요."
     )
 
-    try:
-        client = genai.Client(api_key=api_key)
-        response = client.models.generate_content(
-            model=model_name,
-            contents=prompt,
-            config=types.GenerateContentConfig(
-                system_instruction=system_instruction,
-                temperature=0.2,
-                response_mime_type="application/json",
-                response_schema=GeminiCurationOutput,
-            ),
-        )
+    client = genai.Client(api_key=api_key)
+    last_error: Exception | None = None
 
-        raw_json = response.text
-        if not raw_json:
-            raise GeminiCurationError("Gemini 모델로부터 응답을 받지 못했습니다.")
-
-        data = json.loads(raw_json)
-        curated_output = GeminiCurationOutput.model_validate(data)
-
-        # 원본 기사와 링크/제목 무결성 보정
-        articles_by_index = {a.index: a for a in articles}
-        final_selected: list[CuratedArticle] = []
-
-        for item in curated_output.selected_articles:
-            orig = articles_by_index.get(item.article_index)
-            if orig:
-                # 원본의 정제된 링크와 제목 보장
-                curated_item = CuratedArticle(
-                    article_index=orig.index,
-                    title=orig.title if not item.title else item.title,
-                    link=orig.link,
-                    reason=item.reason,
-                    summary_bullets=item.summary_bullets,
-                    key_insight=item.key_insight,
+    for target_model in candidate_models:
+        for _attempt in range(2):  # 각 모델별 최대 2회 시도
+            try:
+                response = client.models.generate_content(
+                    model=target_model,
+                    contents=prompt,
+                    config=types.GenerateContentConfig(
+                        system_instruction=system_instruction,
+                        temperature=0.2,
+                        response_mime_type="application/json",
+                        response_schema=GeminiCurationOutput,
+                    ),
                 )
-            else:
-                curated_item = item
-            final_selected.append(curated_item)
 
-        # 혹시 3개보다 많거나 적을 경우 최대 3개로 제한
-        return final_selected[:3]
+                raw_json = response.text
+                if not raw_json:
+                    raise GeminiCurationError("Gemini 모델로부터 응답을 받지 못했습니다.")
 
-    except Exception as exc:
-        if isinstance(exc, MissingAPIKeyError):
-            raise
-        raise GeminiCurationError(f"Gemini 뉴스 큐레이션 실패: {exc}") from exc
+                data = json.loads(raw_json)
+                curated_output = GeminiCurationOutput.model_validate(data)
+
+                # 원본 기사와 링크/제목 무결성 보정
+                articles_by_index = {a.index: a for a in articles}
+                final_selected: list[CuratedArticle] = []
+
+                for item in curated_output.selected_articles:
+                    orig = articles_by_index.get(item.article_index)
+                    if orig:
+                        curated_item = CuratedArticle(
+                            article_index=orig.index,
+                            title=orig.title if not item.title else item.title,
+                            link=orig.link,
+                            reason=item.reason,
+                            summary_bullets=item.summary_bullets,
+                            key_insight=item.key_insight,
+                        )
+                    else:
+                        curated_item = item
+                    final_selected.append(curated_item)
+
+                return final_selected[:3]
+
+            except Exception as exc:
+                if isinstance(exc, MissingAPIKeyError):
+                    raise
+                last_error = exc
+                err_str = str(exc)
+                # 503(과부하/UNAVAILABLE) 또는 429(할당량)인 경우 잠시 대기 후 재시도
+                if "503" in err_str or "UNAVAILABLE" in err_str or "high demand" in err_str or "429" in err_str:
+                    import time
+                    time.sleep(1.0)
+                    continue
+                # 404(모델 없음) 등인 경우 바로 다음 fallback 모델로 전환
+                break
+
+    raise GeminiCurationError(f"Gemini 뉴스 큐레이션 실패: {last_error}") from last_error

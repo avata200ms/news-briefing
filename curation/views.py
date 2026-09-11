@@ -30,7 +30,7 @@ def index(request: HttpRequest) -> HttpResponse:
     context: dict[str, Any] = {
         "has_naver_keys": has_naver_id and has_naver_secret,
         "has_gemini_key": has_gemini,
-        "gemini_model": os.getenv("GEMINI_MODEL", "gemini-3.6-flash"),
+        "gemini_model": os.getenv("GEMINI_MODEL", "gemini-3.5-flash"),
         "all_keys_ready": has_naver_id and has_naver_secret and has_gemini,
     }
     return render(request, "curation/index.html", context)

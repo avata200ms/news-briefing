@@ -43,6 +43,14 @@
                     </svg>
                     <span>새 뉴스 큐레이션하기</span>
                 </a>
+                {% if request.user.is_staff %}
+                <a href="{% url 'curation:admin_dashboard' %}" class="btn-admin-nav" id="btn-nav-admin-history" title="관리자 통계 패널">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M12 20V10M18 20V4M6 20v-4"/>
+                    </svg>
+                    <span>관리자 패널</span>
+                </a>
+                {% endif %}
                 <div class="user-profile-badge">
                     <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                         <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>

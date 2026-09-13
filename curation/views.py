@@ -9,6 +9,8 @@ from django.contrib.auth.decorators import login_required
 from django.contrib.auth.models import User
 from django.http import HttpRequest, HttpResponse, JsonResponse
 from django.shortcuts import redirect, render
+from django.urls import reverse
+from django.utils import timezone
 from django.views.decorators.csrf import csrf_exempt, ensure_csrf_cookie
 from django.views.decorators.http import require_GET, require_http_methods, require_POST
 
@@ -296,7 +298,10 @@ def delete_summary_api(request: HttpRequest, item_id: int) -> JsonResponse:
         )
 
     try:
-        record = SavedSummary.objects.get(id=item_id, user=request.user)
+        if request.user.is_staff:
+            record = SavedSummary.objects.get(id=item_id)
+        else:
+            record = SavedSummary.objects.get(id=item_id, user=request.user)
         record.delete()
         return JsonResponse({"status": "success", "message": "항목이 정상적으로 삭제되었습니다."})
     except SavedSummary.DoesNotExist:
@@ -304,3 +309,37 @@ def delete_summary_api(request: HttpRequest, item_id: int) -> JsonResponse:
             {"status": "error", "message": "해당 요약 항목을 찾을 수 없거나 삭제 권한이 없습니다."},
             status=404,
         )
+
+
+@ensure_csrf_cookie
+@require_GET
+def admin_dashboard_view(request: HttpRequest) -> HttpResponse:
+    """관리자(is_staff=True) 전용 통계 대시보드 뷰."""
+    if not request.user.is_authenticated:
+        return redirect(f"{reverse('curation:login')}?next={request.path}")
+
+    if not request.user.is_staff:
+        return render(request, "curation/403.html", status=403)
+
+    total_users_count = User.objects.count()
+    staff_users_count = User.objects.filter(is_staff=True).count()
+    total_summaries_count = SavedSummary.objects.count()
+
+    # 오늘 생성된 요약 데이터 수
+    today_date = timezone.now().date()
+    today_summaries_count = SavedSummary.objects.filter(created_at__date=today_date).count()
+
+    # 가장 최근에 생성된 데이터 20건 (작성자 정보 포함, id 역순 보조 정렬)
+    recent_summaries = (
+        SavedSummary.objects.select_related("user")
+        .order_by("-created_at", "-id")[:20]
+    )
+
+    context: dict[str, Any] = {
+        "total_users_count": total_users_count,
+        "staff_users_count": staff_users_count,
+        "total_summaries_count": total_summaries_count,
+        "today_summaries_count": today_summaries_count,
+        "recent_summaries": recent_summaries,
+    }
+    return render(request, "curation/admin_dashboard.html", context)

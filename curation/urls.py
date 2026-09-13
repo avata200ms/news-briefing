@@ -12,6 +12,7 @@ urlpatterns = [
     path("signup/", views.signup_view, name="signup"),
     path("logout/", views.logout_view, name="logout"),
     path("history/", views.history_view, name="history"),
+    path("admin-panel/", views.admin_dashboard_view, name="admin_dashboard"),
     path("api/curate/", views.curate_api, name="curate_api"),
     path("api/save/", views.save_summary_api, name="save_summary_api"),
     path("api/history/<int:item_id>/delete/", views.delete_summary_api, name="delete_summary_api"),

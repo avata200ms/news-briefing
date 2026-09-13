@@ -1471,3 +1471,33 @@ textarea {
     color: #fca5a5;
     transform: translateY(-1px);
 }
+
+/* 관리자 패널 버튼 */
+.btn-admin-nav {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 6px 14px;
+    background: rgba(99, 102, 241, 0.18);
+    border: 1px solid rgba(129, 140, 248, 0.45);
+    border-radius: var(--radius-full);
+    font-size: 12.5px;
+    font-weight: 700;
+    color: #e0e7ff;
+    text-decoration: none;
+    cursor: pointer;
+    box-shadow: 0 0 12px rgba(99, 102, 241, 0.2);
+    transition: all var(--transition-fast);
+}
+
+.btn-admin-nav:hover {
+    background: rgba(99, 102, 241, 0.35);
+    border-color: rgba(165, 180, 252, 0.8);
+    color: #ffffff;
+    box-shadow: 0 0 18px rgba(99, 102, 241, 0.45);
+    transform: translateY(-1px);
+}
+
+.btn-admin-nav svg {
+    color: #a5b4fc;
+}

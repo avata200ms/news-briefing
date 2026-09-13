@@ -23,3 +23,25 @@ try:
     call_command("migrate", interactive=False, stdout=sys.stdout)
 except Exception as e:
     logging.getLogger("config.wsgi").warning(f"WSGI 자동 마이그레이션 실행 중 알림: {e}")
+
+# 프로덕션 환경 관리자(슈퍼유저) 계정 자동 생성 및 비밀번호 동기화
+try:
+    from django.contrib.auth.models import User
+    admin_user = os.environ.get("DJANGO_SUPERUSER_USERNAME", "admin")
+    admin_pass = os.environ.get("DJANGO_SUPERUSER_PASSWORD", "admin1234!")
+    admin_email = os.environ.get("DJANGO_SUPERUSER_EMAIL", "admin@example.com")
+
+    user, created = User.objects.get_or_create(
+        username=admin_user,
+        defaults={"email": admin_email},
+    )
+    user.set_password(admin_pass)
+    user.is_staff = True
+    user.is_superuser = True
+    user.save()
+    if created:
+        print(f"[WSGI] 관리자 계정 '{admin_user}'이(가) 자동 생성되었습니다.")
+    else:
+        print(f"[WSGI] 관리자 계정 '{admin_user}' 비밀번호 및 권한이 동기화되었습니다.")
+except Exception as e:
+    logging.getLogger("config.wsgi").warning(f"WSGI 관리자 계정 설정 중 알림: {e}")

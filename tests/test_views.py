@@ -2,21 +2,31 @@
 
 import json
 
+import pytest
+from django.contrib.auth.models import User
 from django.test import Client
 from django.urls import reverse
 
 
+@pytest.mark.django_db
 def test_index_view_status() -> None:
-    """메인 대시보드 페이지 GET 요청 성공 테스트."""
+    """메인 대시보드 페이지 GET 요청 성공 테스트 (로그인 상태)."""
+    user = User.objects.create_user(username="view_tester", password="pw")
     client = Client()
+    client.force_login(user)
+
     response = client.get(reverse("curation:index"))
     assert response.status_code == 200
     assert "AI 뉴스 큐레이터" in response.content.decode("utf-8")
 
 
+@pytest.mark.django_db
 def test_curate_api_missing_fields() -> None:
     """필수 필드(keyword, filter_prompt) 누락 시 400 에러 테스트."""
+    user = User.objects.create_user(username="curate_tester", password="pw")
     client = Client()
+    client.force_login(user)
+
     # 키워드 누락
     response = client.post(
         reverse("curation:curate_api"),
@@ -36,13 +46,17 @@ def test_curate_api_missing_fields() -> None:
     assert "필터링 프롬프트를 입력해 주세요" in response.json()["message"]
 
 
+@pytest.mark.django_db
 def test_curate_api_demo_fallback(monkeypatch) -> None:
     """API 키 미설정 시 데모 데이터 fallback 200 반환 테스트."""
     monkeypatch.delenv("NAVER_CLIENT_ID", raising=False)
     monkeypatch.delenv("NAVER_CLIENT_SECRET", raising=False)
     monkeypatch.delenv("GEMINI_API_KEY", raising=False)
 
+    user = User.objects.create_user(username="demo_tester", password="pw")
     client = Client()
+    client.force_login(user)
+
     response = client.post(
         reverse("curation:curate_api"),
         data=json.dumps(

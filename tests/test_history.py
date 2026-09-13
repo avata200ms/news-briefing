@@ -3,6 +3,7 @@
 import json
 
 import pytest
+from django.contrib.auth.models import User
 from django.test import Client
 from django.urls import reverse
 
@@ -30,7 +31,10 @@ def test_saved_summary_model() -> None:
 @pytest.mark.django_db
 def test_save_summary_api_single() -> None:
     """단건 요약 저장 API 테스트."""
+    user = User.objects.create_user(username="single_saver", password="pw")
     client = Client()
+    client.force_login(user)
+
     payload = {
         "title": "단건 저장 기사 제목",
         "summary_bullets": ["요약1", "요약2", "요약3"],
@@ -53,12 +57,16 @@ def test_save_summary_api_single() -> None:
     assert saved.title == "단건 저장 기사 제목"
     assert "요약1\n요약2\n요약3" in saved.summary
     assert saved.keyword == "반도체"
+    assert saved.user == user
 
 
 @pytest.mark.django_db
 def test_save_summary_api_batch() -> None:
     """다건(일괄) 요약 저장 API 테스트."""
+    user = User.objects.create_user(username="batch_saver", password="pw")
     client = Client()
+    client.force_login(user)
+
     payload = {
         "items": [
             {"title": "기사 1", "summary_bullets": ["요약 1"], "link": "https://1.com"},
@@ -76,18 +84,22 @@ def test_save_summary_api_batch() -> None:
     data = response.json()
     assert data["status"] == "success"
     assert len(data["saved_ids"]) == 3
-    assert SavedSummary.objects.filter(keyword="양자 컴퓨팅").count() == 3
+    assert SavedSummary.objects.filter(keyword="양자 컴퓨팅", user=user).count() == 3
 
 
 @pytest.mark.django_db
 def test_history_view() -> None:
     """나의 요약 히스토리 페이지 조회 테스트."""
+    user = User.objects.create_user(username="history_tester", password="pw")
     SavedSummary.objects.create(
+        user=user,
         title="히스토리 확인 기사",
         summary="내용 요약",
         keyword="로봇",
     )
     client = Client()
+    client.force_login(user)
+
     response = client.get(reverse("curation:history"))
     assert response.status_code == 200
     content = response.content.decode("utf-8")
@@ -99,11 +111,15 @@ def test_history_view() -> None:
 @pytest.mark.django_db
 def test_delete_summary_api() -> None:
     """저장된 요약 삭제 API 테스트."""
+    user = User.objects.create_user(username="delete_tester", password="pw")
     item = SavedSummary.objects.create(
+        user=user,
         title="삭제 대상 기사",
         summary="삭제될 내용",
     )
     client = Client()
+    client.force_login(user)
+
     # 정상 삭제
     response = client.post(reverse("curation:delete_summary_api", kwargs={"item_id": item.id}))
     assert response.status_code == 200

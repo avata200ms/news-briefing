@@ -1,11 +1,20 @@
 """뉴스 큐레이션 데이터베이스 모델 정의."""
 
+from django.contrib.auth.models import User
 from django.db import models
 
 
 class SavedSummary(models.Model):
     """사용자가 저장한 뉴스 요약 결과 모델."""
 
+    user = models.ForeignKey(
+        User,
+        on_delete=models.CASCADE,
+        related_name="saved_summaries",
+        null=True,
+        blank=True,
+        verbose_name="저장한 사용자",
+    )
     title = models.CharField(max_length=500, verbose_name="뉴스 제목")
     summary = models.TextField(verbose_name="요약 본문")
     created_at = models.DateTimeField(auto_now_add=True, verbose_name="저장 시간")

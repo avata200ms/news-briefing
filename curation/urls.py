@@ -8,6 +8,9 @@ app_name = "curation"
 
 urlpatterns = [
     path("", views.index, name="index"),
+    path("login/", views.login_view, name="login"),
+    path("signup/", views.signup_view, name="signup"),
+    path("logout/", views.logout_view, name="logout"),
     path("history/", views.history_view, name="history"),
     path("api/curate/", views.curate_api, name="curate_api"),
     path("api/save/", views.save_summary_api, name="save_summary_api"),

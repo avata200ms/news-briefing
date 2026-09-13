@@ -1,0 +1,106 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>로그인 - AI 뉴스 큐레이터</title>
+    <meta name="description" content="AI 뉴스 큐레이터 서비스 로그인">
+    
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Noto+Sans+KR:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    
+    {% load static %}
+    <link rel="stylesheet" href="{% static 'curation/style.css' %}">
+</head>
+<body class="auth-body">
+    <!-- 배경 글로우 오브젝트 -->
+    <div class="glow-sphere glow-1"></div>
+    <div class="glow-sphere glow-2"></div>
+
+    <div class="auth-wrapper">
+        <div class="auth-card">
+            <!-- 브랜드 헤더 -->
+            <div class="auth-brand">
+                <div class="brand-icon">
+                    <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon>
+                    </svg>
+                </div>
+                <h1 class="auth-title">AI 뉴스 큐레이터</h1>
+                <p class="auth-subtitle">로그인 후 실시간 뉴스 요약 &amp; 큐레이션을 시작하세요</p>
+            </div>
+
+            <!-- 에러 알림 메시지 -->
+            {% if error_message %}
+            <div class="auth-alert error">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <circle cx="12" cy="12" r="10"></circle>
+                    <line x1="12" y1="8" x2="12" y2="12"></line>
+                    <line x1="12" y1="16" x2="12.01" y2="16"></line>
+                </svg>
+                <span>{{ error_message }}</span>
+            </div>
+            {% endif %}
+
+            <!-- 로그인 폼 -->
+            <form method="POST" action="{% url 'curation:login' %}" class="auth-form" id="login-form">
+                {% csrf_token %}
+                <input type="hidden" name="next" value="{{ next_url }}">
+
+                <div class="input-group">
+                    <label for="username" class="input-label">아이디</label>
+                    <div class="input-field-wrapper">
+                        <svg class="field-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
+                            <circle cx="12" cy="7" r="4"></circle>
+                        </svg>
+                        <input 
+                            type="text" 
+                            id="username" 
+                            name="username" 
+                            class="text-input" 
+                            placeholder="아이디를 입력하세요" 
+                            required 
+                            autofocus
+                        >
+                    </div>
+                </div>
+
+                <div class="input-group">
+                    <label for="password" class="input-label">비밀번호</label>
+                    <div class="input-field-wrapper">
+                        <svg class="field-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect>
+                            <path d="M7 11V7a5 5 0 0 1 10 0v4"></path>
+                        </svg>
+                        <input 
+                            type="password" 
+                            id="password" 
+                            name="password" 
+                            class="text-input" 
+                            placeholder="비밀번호를 입력하세요" 
+                            required
+                        >
+                    </div>
+                </div>
+
+                <button type="submit" class="btn-primary btn-auth-submit" id="btn-login-submit">
+                    <span>로그인</span>
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <line x1="5" y1="12" x2="19" y2="12"></line>
+                        <polyline points="12 5 19 12 12 19"></polyline>
+                    </svg>
+                </button>
+            </form>
+
+            <!-- 하단 전환 링크 -->
+            <div class="auth-footer">
+                <span>아직 계정이 없으신가요?</span>
+                <a href="{% url 'curation:signup' %}" class="auth-link" id="link-to-signup">회원가입하기</a>
+            </div>
+        </div>
+    </div>
+</body>
+</html>

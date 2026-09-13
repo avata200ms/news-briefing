@@ -4,10 +4,13 @@ import json
 import os
 from typing import Any
 
+from django.contrib.auth import authenticate, login, logout
+from django.contrib.auth.decorators import login_required
+from django.contrib.auth.models import User
 from django.http import HttpRequest, HttpResponse, JsonResponse
-from django.shortcuts import render
+from django.shortcuts import redirect, render
 from django.views.decorators.csrf import csrf_exempt, ensure_csrf_cookie
-from django.views.decorators.http import require_GET, require_POST
+from django.views.decorators.http import require_GET, require_http_methods, require_POST
 
 from curation.models import SavedSummary
 from curation.services.gemini_service import GeminiCurationError
@@ -15,10 +18,79 @@ from curation.services.naver_service import MissingAPIKeyError, NaverAPIError
 from curation.services.pipeline import run_curation_pipeline
 
 
+@require_http_methods(["GET", "POST"])
+def login_view(request: HttpRequest) -> HttpResponse:
+    """사용자 로그인 뷰."""
+    if request.user.is_authenticated:
+        return redirect("curation:index")
+
+    error_message = ""
+    next_url = request.GET.get("next") or request.POST.get("next") or "/"
+
+    if request.method == "POST":
+        username = request.POST.get("username", "").strip()
+        password = request.POST.get("password", "")
+
+        if not username or not password:
+            error_message = "아이디와 비밀번호를 모두 입력해 주세요."
+        else:
+            user = authenticate(request, username=username, password=password)
+            if user is not None:
+                login(request, user)
+                return redirect(next_url)
+            else:
+                error_message = "아이디 또는 비밀번호가 올바르지 않습니다."
+
+    return render(
+        request,
+        "curation/login.html",
+        {"error_message": error_message, "next_url": next_url},
+    )
+
+
+@require_http_methods(["GET", "POST"])
+def signup_view(request: HttpRequest) -> HttpResponse:
+    """신규 사용자 회원가입 뷰."""
+    if request.user.is_authenticated:
+        return redirect("curation:index")
+
+    error_message = ""
+
+    if request.method == "POST":
+        username = request.POST.get("username", "").strip()
+        password = request.POST.get("password", "")
+        password_confirm = request.POST.get("password_confirm", "")
+
+        if not username or not password:
+            error_message = "모든 필수 입력값을 입력해 주세요."
+        elif len(username) < 3:
+            error_message = "아이디는 최소 3자 이상이어야 합니다."
+        elif len(password) < 4:
+            error_message = "비밀번호는 최소 4자 이상이어야 합니다."
+        elif password != password_confirm:
+            error_message = "비밀번호 확인이 일치하지 않습니다."
+        elif User.objects.filter(username=username).exists():
+            error_message = "이미 사용 중인 아이디입니다."
+        else:
+            new_user = User.objects.create_user(username=username, password=password)
+            login(request, new_user)
+            return redirect("curation:index")
+
+    return render(request, "curation/signup.html", {"error_message": error_message})
+
+
+@require_http_methods(["GET", "POST"])
+def logout_view(request: HttpRequest) -> HttpResponse:
+    """사용자 로그아웃 뷰."""
+    logout(request)
+    return redirect("curation:login")
+
+
 @ensure_csrf_cookie
+@login_required
 @require_GET
 def index(request: HttpRequest) -> HttpResponse:
-    """메인 대시보드 뷰."""
+    """메인 대시보드 뷰 (로그인 필수)."""
     from django.conf import settings
     from dotenv import load_dotenv
 
@@ -40,6 +112,12 @@ def index(request: HttpRequest) -> HttpResponse:
 @require_POST
 def curate_api(request: HttpRequest) -> JsonResponse:
     """사용자의 키워드와 필터링 프롬프트를 접수하여 네이버 검색 및 Gemini 큐레이션을 실행하는 API."""
+    if not request.user.is_authenticated:
+        return JsonResponse(
+            {"status": "error", "code": "UNAUTHORIZED", "message": "로그인이 필요한 서비스입니다."},
+            status=401,
+        )
+
     try:
         body = json.loads(request.body.decode("utf-8"))
     except Exception:
@@ -108,7 +186,13 @@ def curate_api(request: HttpRequest) -> JsonResponse:
 @csrf_exempt
 @require_POST
 def save_summary_api(request: HttpRequest) -> JsonResponse:
-    """AI 요약 결과를 데이터베이스에 저장하는 API."""
+    """AI 요약 결과를 데이터베이스에 저장하는 API (로그인 사용자별 분리)."""
+    if not request.user.is_authenticated:
+        return JsonResponse(
+            {"status": "error", "code": "UNAUTHORIZED", "message": "로그인이 필요한 서비스입니다."},
+            status=401,
+        )
+
     try:
         body = json.loads(request.body.decode("utf-8"))
     except Exception:
@@ -132,6 +216,7 @@ def save_summary_api(request: HttpRequest) -> JsonResponse:
 
             if title and summary:
                 record = SavedSummary.objects.create(
+                    user=request.user,
                     title=title,
                     summary=summary,
                     link=it.get("link", "").strip(),
@@ -169,6 +254,7 @@ def save_summary_api(request: HttpRequest) -> JsonResponse:
         )
 
     record = SavedSummary.objects.create(
+        user=request.user,
         title=title,
         summary=summary,
         link=body.get("link", "").strip(),
@@ -187,10 +273,11 @@ def save_summary_api(request: HttpRequest) -> JsonResponse:
 
 
 @ensure_csrf_cookie
+@login_required
 @require_GET
 def history_view(request: HttpRequest) -> HttpResponse:
-    """사용자가 저장한 뉴스 요약 히스토리 페이지 뷰."""
-    summaries = SavedSummary.objects.all()
+    """사용자가 저장한 뉴스 요약 히스토리 페이지 뷰 (본인 데이터만 조회)."""
+    summaries = SavedSummary.objects.filter(user=request.user)
     context: dict[str, Any] = {
         "summaries": summaries,
         "total_count": summaries.count(),
@@ -201,13 +288,19 @@ def history_view(request: HttpRequest) -> HttpResponse:
 @csrf_exempt
 @require_POST
 def delete_summary_api(request: HttpRequest, item_id: int) -> JsonResponse:
-    """저장된 뉴스 요약 항목을 삭제하는 API."""
+    """저장된 뉴스 요약 항목을 삭제하는 API (본인 데이터만 삭제 가능)."""
+    if not request.user.is_authenticated:
+        return JsonResponse(
+            {"status": "error", "code": "UNAUTHORIZED", "message": "로그인이 필요한 서비스입니다."},
+            status=401,
+        )
+
     try:
-        record = SavedSummary.objects.get(id=item_id)
+        record = SavedSummary.objects.get(id=item_id, user=request.user)
         record.delete()
         return JsonResponse({"status": "success", "message": "항목이 정상적으로 삭제되었습니다."})
     except SavedSummary.DoesNotExist:
         return JsonResponse(
-            {"status": "error", "message": "해당 요약 항목을 찾을 수 없습니다."},
+            {"status": "error", "message": "해당 요약 항목을 찾을 수 없거나 삭제 권한이 없습니다."},
             status=404,
         )
